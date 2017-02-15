@@ -13,31 +13,21 @@ class CassandraExampleApp < Sinatra::Base
     halt(500, exception.message)
   end
 
-  post '/:keyspace_name' do
-    cassandra_client.create_keyspace(params[:keyspace_name])
+  post '/:table_name' do
+    cassandra_client.create_table(params[:table_name])
   end
 
-  post '/:keyspace_name/:table_name' do
-    cassandra_client.create_table(params[:keyspace_name], params[:table_name])
-  end
-
-  delete '/:keyspace_name' do
-    cassandra_client.delete_keyspace(params[:keyspace_name])
-  end
-
-  post '/:keyspace_name/:table_name/:key/:value' do
+  post '/:table_name/:key/:value' do
     status 201
     cassandra_client.store(
-      keyspace_name: params[:keyspace_name],
       table_name: params[:table_name],
       key: params[:key],
       value: params[:value]
     )
   end
 
-  get '/:keyspace_name/:table_name/:key' do
+  get '/:table_name/:key' do
     cassandra_client.fetch(
-      keyspace_name: params[:keyspace_name],
       table_name: params[:table_name],
       key: params[:key]
     )
@@ -66,7 +56,7 @@ class CassandraExampleApp < Sinatra::Base
   def cassandra_connection_details
     @cassandra_connection_details ||= begin
       require "cf-app-utils"
-      CF::App::Credentials.find_all_by_all_service_tags(%w[cassandra pivotal]).first
+      CF::App::Credentials.find_all_by_all_service_tags(%w[cassandra]).first
     end
   end
 

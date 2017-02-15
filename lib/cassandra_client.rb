@@ -31,43 +31,22 @@ class CassandraClient < SimpleDelegator
      raise(CassandraUnavailableException, exception)
   end
 
-
-  def keyspace_exists?(keyspace_name)
-    cluster.has_keyspace? keyspace_name
-  end
-
-  def table_exists?(keyspace_name, table_name)
+  def table_exists?(table_name)
     query = %{
-      SELECT table_name
-      FROM system_schema.tables
-      WHERE keyspace_name=? AND table_name=?
+      SELECT columnfamily_name
+      FROM system.schema_columnfamilies
+      WHERE keyspace_name='#{keyspace_name}' AND columnfamily_name=?
     }
 
     prepared_statement = session.prepare(query)
-    result = session.execute(prepared_statement, {arguments: [keyspace_name, table_name]})
+    result = session.execute(prepared_statement, {arguments: [table_name]})
     result.one?
   end
 
-  def create_keyspace(keyspace_name)
-    raise InvalidKeyspaceName if keyspace_name.index(/[^0-9a-z_]/i)
-
-    return if keyspace_exists?(keyspace_name)
-
-    query = %{
-      CREATE KEYSPACE "#{keyspace_name}"
-      WITH REPLICATION = {
-        'class' : 'SimpleStrategy',
-        'replication_factor' : 1
-      }
-    }
-
-    session.execute(query)
-  end
-
-  def create_table(keyspace_name, table_name)
+  def create_table(table_name)
     raise InvalidTableName if table_name.index(/[^0-9a-z_]/i)
 
-    return if table_exists?(keyspace_name, table_name)
+    return if table_exists?(table_name)
 
     query = %{
       CREATE TABLE "#{keyspace_name}"."#{table_name}" (
@@ -79,23 +58,12 @@ class CassandraClient < SimpleDelegator
     session.execute(query)
   end
 
-  def delete_keyspace(keyspace_name)
-    return unless keyspace_exists?(keyspace_name)
-
-    query = %{
-      DROP KEYSPACE "#{keyspace_name}"
-    }
-
-    session.execute(query)
-  end
-
   def store(args)
-    keyspace_name = args.fetch(:keyspace_name)
     table_name = args.fetch(:table_name)
     key = args.fetch(:key)
     value = args.fetch(:value)
 
-    ensure_table_exists(keyspace_name, table_name)
+    ensure_table_exists(table_name)
 
     query = %{
       INSERT INTO "#{keyspace_name}"."#{table_name}" (id, value)
@@ -107,11 +75,10 @@ class CassandraClient < SimpleDelegator
   end
 
   def fetch(args)
-    keyspace_name = args.fetch(:keyspace_name)
     table_name = args.fetch(:table_name)
     key = args.fetch(:key)
 
-    ensure_table_exists(keyspace_name, table_name)
+    ensure_table_exists(table_name)
 
     query = %{
       SELECT value
@@ -131,26 +98,26 @@ class CassandraClient < SimpleDelegator
 
   attr_reader :connection_details
 
-  def ensure_table_exists(keyspace_name, table_name)
-    unless table_exists?(keyspace_name, table_name)
+  def ensure_table_exists(table_name)
+    unless table_exists?(table_name)
       raise(TableDoesNotExistException, %{Table "#{table_name}" does not exist})
     end
   end
 
   def keyspace_name
-    connection_details.fetch('keyspace_name')
+    connection_details.fetch('keyspace')
   end
 
   def username
-    connection_details.fetch('username', "cassandra")
+    connection_details.fetch('username')
   end
 
   def password
-    connection_details.fetch('password', "cassandra")
+    connection_details.fetch('password')
   end
 
   def hosts
-    connection_details.fetch('node_ips', %w[localhost])
+    connection_details.fetch('hosts').split(',')
   end
 
   def connection_timeout
@@ -159,9 +126,8 @@ class CassandraClient < SimpleDelegator
 
   def remapped_connection_details
     {
-
-        username: username,
-        password: password,
+      username: username,
+      password: password,
       hosts: hosts,
       connection_timeout: connection_timeout,
     }
