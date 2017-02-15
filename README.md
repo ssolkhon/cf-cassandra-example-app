@@ -1,6 +1,6 @@
-# Example Cassandra Application [![Build Status](https://travis-ci.org/pivotal-cf/cf-cassandra-example-app.svg)](https://travis-ci.org/pivotal-cf/cf-cassandra-example-app)
+# Example Cassandra Application
 
-This simple application illustrates the use of the Pivotal Cassandra data service in a Ruby application running on Pivotal Cloud Foundry.
+This simple application illustrates the use of the a Cassandra data service in a Ruby application running on Cloud Foundry.
 
 ## Installation
 
@@ -13,14 +13,14 @@ $ cf marketplace
 Getting services from marketplace in org testing / space testing as me...
 OK
 
-service       plans     description
-p-cassandra   default   Cassandra service
+service     plans     description
+cassandra   default   Cassandra service
 ```
 
-Our service is called `p-cassandra`.  To create an instance of this service, use:
+Our service is called `cassandra`.  To create an instance of this service, use:
 
 ```
-$ cf create-service p-cassandra default cassandra
+$ cf create-service cassandra default cassandra-instance
 ```
 
 #### Push the Example Application
@@ -51,27 +51,6 @@ urls: cassandra-example-app.10.244.0.34.xip.io
 
      state     since                    cpu    memory          disk
 #0   running   2014-04-10 01:42:43 PM   0.0%   75.5M of 256M   0 of 1G
-```
-
-If you now curl the application, you'll see that the application has detected that it's not bound to a cassandra instance.
-
-```
-$ curl http://cassandra-example-app.example.com/
-
-      You must bind a Cassandra service instance to this application.
-
-      You can run the following commands to create an instance and bind to it:
-
-        $ cf create-service cassandra default cassandra-instance
-        $ cf bind-service app-name cassandra-instance
-```
-
-#### Bind the Instance
-
-Now, simply bind the cassandra instance to our application.
-
-```
-$ cf bind-service cassandra-example-app cassandra
 ```
 
 ## Usage
